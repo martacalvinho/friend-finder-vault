@@ -3,7 +3,8 @@ import { AddRecommendationDialog } from "@/components/AddRecommendationDialog";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface Recommendation {
   id: number;
@@ -23,8 +24,8 @@ const Index = () => {
 
   const handleAddRecommendation = (newRecommendation: Omit<Recommendation, "id">) => {
     setRecommendations([
-      ...recommendations,
       { ...newRecommendation, id: Date.now() },
+      ...recommendations,
     ]);
   };
 
@@ -48,24 +49,48 @@ const Index = () => {
     setSelectedCategory("all");
   };
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const item = {
+    hidden: { y: 20, opacity: 0 },
+    show: { y: 0, opacity: 1 }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">FriendFinds</h1>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="container py-8 px-4 sm:px-6 lg:px-8">
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="text-center mb-8"
+        >
+          <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
+            FriendFinds
+            <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+          </h1>
           <p className="text-gray-600">Never lose a friend's recommendation again</p>
           {selectedFriend && (
-            <p className="mt-4 text-primary">
-              Showing recommendations from {selectedFriend}{" "}
-              <button
-                onClick={() => setSelectedFriend(null)}
-                className="text-sm text-gray-500 hover:text-gray-700 underline"
-              >
-                (clear)
-              </button>
-            </p>
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
+              <p className="text-primary">
+                Showing recommendations from {selectedFriend}{" "}
+                <button
+                  onClick={() => setSelectedFriend(null)}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  (clear)
+                </button>
+              </p>
+            </div>
           )}
-        </div>
+        </motion.div>
 
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
           <div className="relative flex-1 w-full max-w-md">
@@ -97,29 +122,39 @@ const Index = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div 
+          variants={container}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           {filteredRecommendations.map((recommendation) => (
-            <RecommendationCard
-              key={recommendation.id}
-              title={recommendation.title}
-              category={recommendation.category}
-              friendName={recommendation.friendName}
-              notes={recommendation.notes}
-              url={recommendation.url}
-              date={recommendation.date}
-              onFriendClick={handleFriendClick}
-            />
+            <motion.div key={recommendation.id} variants={item}>
+              <RecommendationCard
+                title={recommendation.title}
+                category={recommendation.category}
+                friendName={recommendation.friendName}
+                notes={recommendation.notes}
+                url={recommendation.url}
+                date={recommendation.date}
+                onFriendClick={handleFriendClick}
+              />
+            </motion.div>
           ))}
           {filteredRecommendations.length === 0 && (
-            <div className="col-span-full text-center py-12">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="col-span-full text-center py-12"
+            >
               <p className="text-gray-500">
                 {recommendations.length === 0
                   ? "No recommendations yet. Add your first one!"
                   : "No recommendations match your search."}
               </p>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );
