@@ -16,7 +16,7 @@ interface Recommendation {
 const Index = () => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   const handleAddRecommendation = (newRecommendation: Omit<Recommendation, "id">) => {
     setRecommendations([
@@ -29,7 +29,7 @@ const Index = () => {
     const matchesSearch = rec.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rec.friendName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rec.notes.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || rec.category === selectedCategory;
+    const matchesCategory = selectedCategory === "all" || rec.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -59,7 +59,7 @@ const Index = () => {
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
