@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AddRecommendationDialog } from "@/components/AddRecommendationDialog";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { Input } from "@/components/ui/input";
@@ -9,24 +9,43 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Recommendation {
-  id: number;
+  id: string;
   title: string;
   category: string;
-  friendName: string;
-  notes: string;
-  url?: string;
+  friend_name: string;
+  notes: string | null;
+  url: string | null;
   date: string;
+  used: boolean;
 }
 
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
+
+  const { data: recommendations = [], isLoading } = useQuery({
+    queryKey: ['recommendations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('recommendations')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching recommendations:', error);
+        throw error;
+      }
+
+      return data || [];
+    },
+  });
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -37,27 +56,86 @@ const Index = () => {
     });
   };
 
-  const handleAddRecommendation = (newRecommendation: Omit<Recommendation, "id">) => {
-    setRecommendations([
-      { ...newRecommendation, id: Date.now() },
-      ...recommendations,
-    ]);
+  const handleAddRecommendation = async (newRecommendation: Omit<Recommendation, "id" | "used">) => {
+    const { data, error } = await supabase
+      .from('recommendations')
+      .insert([{ ...newRecommendation, used: false }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding recommendation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add recommendation. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['recommendations'] });
+    toast({
+      title: "Success!",
+      description: "Recommendation added successfully",
+    });
+  };
+
+  const handleDeleteRecommendation = async (id: string) => {
+    const { error } = await supabase
+      .from('recommendations')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting recommendation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete recommendation. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['recommendations'] });
+    toast({
+      title: "Success",
+      description: "Recommendation deleted successfully",
+    });
+  };
+
+  const handleToggleUsed = async (id: string, used: boolean) => {
+    const { error } = await supabase
+      .from('recommendations')
+      .update({ used })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating recommendation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update recommendation. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['recommendations'] });
   };
 
   const filteredRecommendations = recommendations.filter((rec) => {
     const searchTermLower = searchTerm.toLowerCase();
     const matchesSearch = 
       rec.title.toLowerCase().includes(searchTermLower) ||
-      rec.friendName.toLowerCase().includes(searchTermLower) ||
+      rec.friend_name.toLowerCase().includes(searchTermLower) ||
       rec.category.toLowerCase().includes(searchTermLower) ||
-      rec.notes.toLowerCase().includes(searchTermLower);
+      (rec.notes?.toLowerCase().includes(searchTermLower) ?? false);
     const matchesCategory = selectedCategory === "all" || rec.category === selectedCategory;
-    const matchesFriend = !selectedFriend || rec.friendName === selectedFriend;
+    const matchesFriend = !selectedFriend || rec.friend_name === selectedFriend;
     return matchesSearch && matchesCategory && matchesFriend;
   });
 
   const categories = Array.from(new Set(recommendations.map((rec) => rec.category)));
-  const friends = Array.from(new Set(recommendations.map((rec) => rec.friendName)));
+  const friends = Array.from(new Set(recommendations.map((rec) => rec.friend_name)));
 
   const handleFriendClick = (name: string) => {
     setSelectedFriend(selectedFriend === name ? null : name);
@@ -78,6 +156,14 @@ const Index = () => {
     hidden: { y: 20, opacity: 0 },
     show: { y: 0, opacity: 1 }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/5">
@@ -167,13 +253,17 @@ const Index = () => {
               className="transform transition-all duration-300 hover:translate-y-[-5px]"
             >
               <RecommendationCard
+                id={recommendation.id}
                 title={recommendation.title}
                 category={recommendation.category}
-                friendName={recommendation.friendName}
-                notes={recommendation.notes}
-                url={recommendation.url}
+                friendName={recommendation.friend_name}
+                notes={recommendation.notes || undefined}
+                url={recommendation.url || undefined}
                 date={recommendation.date}
+                used={recommendation.used}
                 onFriendClick={handleFriendClick}
+                onDelete={handleDeleteRecommendation}
+                onToggleUsed={handleToggleUsed}
               />
             </motion.div>
           ))}
@@ -185,7 +275,7 @@ const Index = () => {
             >
               <p className="text-gray-500">
                 {recommendations.length === 0
-                  ? "No recommendations yet. Add your first one!"
+                  ? "No recommendations yet! Tap the '+' button to add your first one!"
                   : "No recommendations match your search."}
               </p>
             </motion.div>

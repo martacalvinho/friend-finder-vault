@@ -39,6 +39,7 @@ export type Database = {
           notes: string | null
           title: string
           url: string | null
+          used: boolean
           user_id: string
         }
         Insert: {
@@ -49,6 +50,7 @@ export type Database = {
           notes?: string | null
           title: string
           url?: string | null
+          used?: boolean
           user_id: string
         }
         Update: {
@@ -59,6 +61,7 @@ export type Database = {
           notes?: string | null
           title?: string
           url?: string | null
+          used?: boolean
           user_id?: string
         }
         Relationships: []

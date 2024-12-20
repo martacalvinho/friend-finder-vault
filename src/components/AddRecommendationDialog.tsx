@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlusCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const defaultCategories = [
   "Plumbers",
@@ -21,7 +22,7 @@ interface AddRecommendationDialogProps {
   onAdd: (recommendation: {
     title: string;
     category: string;
-    friendName: string;
+    friend_name: string;
     notes: string;
     url?: string;
     date: string;
@@ -40,9 +41,9 @@ export function AddRecommendationDialog({ onAdd, existingCategories }: AddRecomm
   const { toast } = useToast();
 
   const allCategories = Array.from(new Set([...defaultCategories, ...existingCategories]));
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalCategory = category === "Others" ? customCategory : category;
     
@@ -55,20 +56,27 @@ export function AddRecommendationDialog({ onAdd, existingCategories }: AddRecomm
       return;
     }
 
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session?.user.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to add recommendations",
+        variant: "destructive",
+      });
+      return;
+    }
+
     onAdd({ 
       title, 
       category: finalCategory, 
-      friendName, 
+      friend_name: friendName, 
       notes,
       url: url || undefined,
-      date: today
+      date: today,
     });
+
     setOpen(false);
     resetForm();
-    toast({
-      title: "Success!",
-      description: "Recommendation added successfully",
-    });
   };
 
   const resetForm = () => {
