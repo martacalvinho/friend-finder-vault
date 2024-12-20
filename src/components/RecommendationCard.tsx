@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Calendar } from "lucide-react";
 import { Button } from "./ui/button";
 
 interface RecommendationCardProps {
@@ -32,7 +32,7 @@ export function RecommendationCard({
   });
 
   return (
-    <Card className={cn("transition-all duration-300 hover:animate-card-hover", className)}>
+    <Card className={cn("bg-white/50 backdrop-blur-sm border-primary/10 hover:border-primary/20 transition-all duration-300", className)}>
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -46,7 +46,6 @@ export function RecommendationCard({
               >
                 {friendName}
               </Button>
-              {" "}on {formattedDate}
             </CardDescription>
           </div>
           <Badge variant="secondary" className="ml-2">
@@ -56,17 +55,23 @@ export function RecommendationCard({
       </CardHeader>
       <CardContent className="space-y-2">
         {notes && <p className="text-sm text-gray-600">{notes}</p>}
-        {url && (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center text-sm text-primary hover:underline"
-          >
-            Visit Website
-            <ExternalLink className="ml-1 h-3 w-3" />
-          </a>
-        )}
+        <div className="flex items-center justify-between text-sm text-gray-500">
+          <div className="flex items-center gap-1">
+            <Calendar className="h-4 w-4" />
+            {formattedDate}
+          </div>
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center text-primary hover:underline"
+            >
+              Visit Website
+              <ExternalLink className="ml-1 h-3 w-3" />
+            </a>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

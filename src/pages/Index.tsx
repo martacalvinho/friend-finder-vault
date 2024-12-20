@@ -3,8 +3,12 @@ import { AddRecommendationDialog } from "@/components/AddRecommendationDialog";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkles, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Recommendation {
   id: number;
@@ -17,10 +21,21 @@ interface Recommendation {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+    toast({
+      title: "Signed out successfully",
+      description: "Come back soon!",
+    });
+  };
 
   const handleAddRecommendation = (newRecommendation: Omit<Recommendation, "id">) => {
     setRecommendations([
@@ -65,20 +80,37 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/5">
       <div className="container py-8 px-4 sm:px-6 lg:px-8">
         <motion.div 
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="text-center mb-8"
+          className="flex justify-between items-center mb-8"
         >
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
-            FriendFinds
-            <Sparkles className="h-8 w-8 text-primary animate-pulse" />
-          </h1>
-          <p className="text-gray-600">Never lose a friend's recommendation again</p>
-          {selectedFriend && (
-            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
+          <div className="text-center flex-1">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
+              FriendFinds
+              <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+            </h1>
+            <p className="text-gray-600">Never lose a friend's recommendation again</p>
+          </div>
+          <Button
+            variant="ghost"
+            className="hover:bg-red-100 hover:text-red-600 transition-colors"
+            onClick={handleSignOut}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
+        </motion.div>
+
+        {selectedFriend && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-6"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
               <p className="text-primary">
                 Showing recommendations from {selectedFriend}{" "}
                 <button
@@ -89,8 +121,8 @@ const Index = () => {
                 </button>
               </p>
             </div>
-          )}
-        </motion.div>
+          </motion.div>
+        )}
 
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
           <div className="relative flex-1 w-full max-w-md">
@@ -129,7 +161,11 @@ const Index = () => {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           {filteredRecommendations.map((recommendation) => (
-            <motion.div key={recommendation.id} variants={item}>
+            <motion.div 
+              key={recommendation.id} 
+              variants={item}
+              className="transform transition-all duration-300 hover:translate-y-[-5px]"
+            >
               <RecommendationCard
                 title={recommendation.title}
                 category={recommendation.category}
