@@ -1,15 +1,23 @@
-import { Search } from "lucide-react";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { motion } from "framer-motion";
+import { Label } from "./ui/label";
+import { DatePicker } from "./ui/date-picker";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import { Calendar, Check, X } from "lucide-react";
 
 interface SearchFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   selectedCategory: string;
   onCategoryChange: (value: string) => void;
-  categories: string[];
+  selectedStatus: string;
+  onStatusChange: (value: string) => void;
   selectedFriend: string | null;
+  onFriendChange: (value: string | null) => void;
+  startDate: Date | null;
+  endDate: Date | null;
+  onDateChange: (start: Date | null, end: Date | null) => void;
+  friends: string[];
 }
 
 export const SearchFilters = ({
@@ -17,39 +25,107 @@ export const SearchFilters = ({
   onSearchChange,
   selectedCategory,
   onCategoryChange,
-  categories,
-  selectedFriend
+  selectedStatus,
+  onStatusChange,
+  selectedFriend,
+  onFriendChange,
+  startDate,
+  endDate,
+  onDateChange,
+  friends,
 }: SearchFiltersProps) => {
   return (
-    <motion.div 
-      initial={{ y: 20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ delay: 0.2 }}
-      className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl border border-gray-200 dark:border-gray-700"
-    >
-      <div className="relative flex-1 w-full max-w-md">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input
-          type="text"
-          placeholder="Search recommendations, categories, or friends..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 bg-white/50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700"
-        />
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Search Input */}
+        <div className="space-y-2">
+          <Label>Search</Label>
+          <Input
+            placeholder="Search recommendations..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+        </div>
+
+        {/* Category Filter */}
+        <div className="space-y-2">
+          <Label>Category</Label>
+          <Select value={selectedCategory} onValueChange={onCategoryChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="movie">Movies</SelectItem>
+              <SelectItem value="book">Books</SelectItem>
+              <SelectItem value="restaurant">Restaurants</SelectItem>
+              <SelectItem value="travel">Travel</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Friend Filter */}
+        <div className="space-y-2">
+          <Label>Friend</Label>
+          <Select 
+            value={selectedFriend || ''} 
+            onValueChange={(value) => onFriendChange(value === 'all' ? null : value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select friend" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Friends</SelectItem>
+              {friends.map((friend) => (
+                <SelectItem key={friend} value={friend}>
+                  {friend}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Date Range */}
+        <div className="space-y-2">
+          <Label>Date Range</Label>
+          <div className="flex gap-2">
+            <DatePicker
+              date={startDate}
+              onDateChange={(date) => onDateChange(date, endDate)}
+              placeholder="Start date"
+            />
+            <DatePicker
+              date={endDate}
+              onDateChange={(date) => onDateChange(startDate, date)}
+              placeholder="End date"
+            />
+          </div>
+        </div>
       </div>
-      <Select value={selectedCategory} onValueChange={onCategoryChange}>
-        <SelectTrigger className="w-[200px] bg-white/50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700">
-          <SelectValue placeholder="All Categories" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Categories</SelectItem>
-          {categories.map((category) => (
-            <SelectItem key={category} value={category}>
-              {category}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </motion.div>
+
+      {/* Status Toggle */}
+      <div className="space-y-2">
+        <Label>Status</Label>
+        <ToggleGroup 
+          type="single" 
+          value={selectedStatus}
+          onValueChange={(value) => value && onStatusChange(value)}
+          className="justify-start"
+        >
+          <ToggleGroupItem value="all" aria-label="Show all recommendations">
+            All
+          </ToggleGroupItem>
+          <ToggleGroupItem value="used" aria-label="Show used recommendations">
+            <Check className="h-4 w-4 mr-1" />
+            Used
+          </ToggleGroupItem>
+          <ToggleGroupItem value="unused" aria-label="Show unused recommendations">
+            <X className="h-4 w-4 mr-1" />
+            Not Used
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+    </div>
   );
 };

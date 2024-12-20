@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AddRecommendationDialog } from "@/components/AddRecommendationDialog";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -8,6 +8,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { SearchFilters } from "@/components/SearchFilters";
 import { RecommendationGrid } from "@/components/RecommendationGrid";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/Button";
 
 interface Recommendation {
   id: string;
@@ -27,7 +28,27 @@ const Index = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/login");
+      }
+    });
+
+    // Check initial auth state
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/login");
+      }
+    });
+
+    return () => subscription?.unsubscribe();
+  }, [navigate]);
 
   const { data: recommendations = [], isLoading } = useQuery({
     queryKey: ['recommendations'],
@@ -46,13 +67,63 @@ const Index = () => {
     },
   });
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
-    toast({
-      title: "Signed out successfully",
-      description: "Come back soon!",
+  const friends = useMemo(() => {
+    const uniqueFriends = new Set(recommendations.map(rec => rec.friend_name));
+    return Array.from(uniqueFriends).filter(Boolean).sort();
+  }, [recommendations]);
+
+  const filteredRecommendations = useMemo(() => {
+    return recommendations.filter(rec => {
+      const searchMatch = !searchTerm || 
+        rec.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (rec.notes?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        rec.friend_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rec.category.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const categoryMatch = selectedCategory === "all" || rec.category === selectedCategory;
+
+      const statusMatch = selectedStatus === "all" || 
+        (selectedStatus === "used" && rec.used) ||
+        (selectedStatus === "unused" && !rec.used);
+
+      const friendMatch = !selectedFriend || rec.friend_name === selectedFriend;
+
+      const dateMatch = (!startDate || new Date(rec.date) >= startDate) &&
+        (!endDate || new Date(rec.date) <= endDate);
+
+      return searchMatch && categoryMatch && statusMatch && friendMatch && dateMatch;
     });
+  }, [recommendations, searchTerm, selectedCategory, selectedStatus, selectedFriend, startDate, endDate]);
+
+  const handleDateChange = (start: Date | null, end: Date | null) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      // First clear all queries
+      queryClient.clear();
+      
+      // Then sign out
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
+      // Force navigation to login
+      window.location.href = '/login';
+      
+      toast({
+        title: "Signed out successfully",
+        description: "Come back soon!",
+      });
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error signing out",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAddRecommendation = async (newRecommendation: Omit<Recommendation, "id" | "used">) => {
@@ -121,93 +192,73 @@ const Index = () => {
     queryClient.invalidateQueries({ queryKey: ['recommendations'] });
   };
 
-  const filteredRecommendations = recommendations.filter((rec) => {
-    const searchTermLower = searchTerm.toLowerCase();
-    const matchesSearch = 
-      rec.title.toLowerCase().includes(searchTermLower) ||
-      rec.friend_name.toLowerCase().includes(searchTermLower) ||
-      rec.category.toLowerCase().includes(searchTermLower) ||
-      (rec.notes?.toLowerCase().includes(searchTermLower) ?? false);
-    const matchesCategory = selectedCategory === "all" || rec.category === selectedCategory;
-    const matchesFriend = !selectedFriend || rec.friend_name === selectedFriend;
-    return matchesSearch && matchesCategory && matchesFriend;
-  });
-
-  const categories = Array.from(new Set(recommendations.map((rec) => rec.category)));
-
-  const handleFriendClick = (name: string) => {
-    setSelectedFriend(selectedFriend === name ? null : name);
-    setSelectedCategory("all");
+  const handleFriendClick = (friendName: string) => {
+    setSelectedFriend(friendName === selectedFriend ? null : friendName);
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/5">
       <div className="container py-8 px-4 sm:px-6 lg:px-8">
         <DashboardHeader onSignOut={handleSignOut} />
-
+        
         {selectedFriend && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-6"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
-              <p className="text-primary">
-                Showing recommendations from {selectedFriend}{" "}
-                <button
-                  onClick={() => setSelectedFriend(null)}
-                  className="text-sm text-gray-500 hover:text-gray-700 underline"
-                >
-                  (clear)
-                </button>
-              </p>
-            </div>
-          </motion.div>
+          <div className="mb-4 px-4 py-2 bg-primary/10 rounded-lg inline-flex items-center gap-2">
+            <span>Showing recommendations from {selectedFriend}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedFriend(null)}
+              className="hover:bg-primary/20"
+            >
+              Clear filter
+            </Button>
+          </div>
         )}
 
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+        <div className="mb-8">
           <SearchFilters
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
-            categories={categories}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
             selectedFriend={selectedFriend}
-          />
-          <AddRecommendationDialog 
-            onAdd={handleAddRecommendation} 
-            existingCategories={categories}
+            onFriendChange={setSelectedFriend}
+            startDate={startDate}
+            endDate={endDate}
+            onDateChange={handleDateChange}
+            friends={friends}
           />
         </div>
 
         <RecommendationGrid
           recommendations={filteredRecommendations}
-          onFriendClick={handleFriendClick}
+          isLoading={isLoading}
+          onRecommendationClick={(id) => {
+            const recommendation = recommendations.find(r => r.id === id);
+            if (recommendation) {
+              supabase
+                .from('recommendations')
+                .update({ used: !recommendation.used })
+                .eq('id', id)
+                .then(() => {
+                  queryClient.invalidateQueries(['recommendations']);
+                  toast({
+                    title: recommendation.used ? "Marked as not used" : "Marked as used",
+                    description: `${recommendation.title} has been updated.`,
+                  });
+                });
+            }
+          }}
           onDelete={handleDeleteRecommendation}
-          onToggleUsed={handleToggleUsed}
+          onFriendClick={handleFriendClick}
         />
 
-        {filteredRecommendations.length === 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700"
-          >
-            <p className="text-gray-500">
-              {recommendations.length === 0
-                ? "No recommendations yet! Tap the '+' button to add your first one!"
-                : "No recommendations match your search."}
-            </p>
-          </motion.div>
-        )}
+        <AddRecommendationDialog 
+          onAdd={handleAddRecommendation}
+          existingCategories={Array.from(new Set(recommendations.map(rec => rec.category)))}
+        />
       </div>
     </div>
   );
