@@ -7,8 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { SearchFilters } from "@/components/SearchFilters";
 import { RecommendationGrid } from "@/components/RecommendationGrid";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 interface Recommendation {
   id: string;
