@@ -17,18 +17,18 @@ export const LandingHero = ({ onGetStarted }: LandingHeroProps) => {
       >
         <div className="flex items-center justify-center gap-2 mb-4">
           <h1 className="text-4xl sm:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            FriendFinds
+            Unlock Your Friends' Best Kept Secrets
           </h1>
           <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-primary animate-pulse" />
         </div>
         
         <h2 className="text-2xl sm:text-3xl font-semibold text-gray-800 dark:text-gray-200">
-          Never Lose a Friend's Recommendation Again
+          Save & Organize Their Trusted Recommendations
         </h2>
         
         <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-          The perfect place to store and organize all those amazing recommendations from your friends - 
-          from books and movies to restaurants and travel spots.
+          Stop losing amazing recommendations in your chat history. FriendFinds is the simple way to save, 
+          organize, and access all the great things your friends suggest.
         </p>
 
         <motion.div
@@ -41,17 +41,17 @@ export const LandingHero = ({ onGetStarted }: LandingHeroProps) => {
             {
               icon: <BookMarked className="h-8 w-8 text-primary" />,
               title: "Save Everything",
-              description: "Keep all recommendations in one organized space"
+              description: "Keep all those amazing recommendations - from hidden gem restaurants to must-read books - in one beautifully organized space"
             },
             {
               icon: <Share2 className="h-8 w-8 text-primary" />,
               title: "Easy Access",
-              description: "Find what you need when you need it"
+              description: "Instantly find what you need, right when you need it. Search by category, keyword, or friend to quickly rediscover that perfect recommendation"
             },
             {
               icon: <Sparkles className="h-8 w-8 text-primary" />,
               title: "Never Forget",
-              description: "Turn friend suggestions into memorable experiences"
+              description: "Turn your friends' fantastic suggestions into memorable experiences. No more sifting through old messages – it's all here, ready when you are"
             }
           ].map((feature, index) => (
             <motion.div
