@@ -44,7 +44,7 @@ const Login = () => {
               >
                 ← Back to home
               </button>
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
                 Welcome to FriendFinds
               </h1>
               <p className="text-gray-600 dark:text-gray-300">Sign in to start organizing your recommendations</p>
@@ -53,7 +53,7 @@ const Login = () => {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg"
+              className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl"
             >
               <Auth
                 supabaseClient={supabase}
@@ -62,10 +62,14 @@ const Login = () => {
                   variables: {
                     default: {
                       colors: {
-                        brand: '#4A90E2',
-                        brandAccent: '#82C3A6',
+                        brand: 'rgb(74, 144, 226)',
+                        brandAccent: 'rgb(130, 195, 166)',
                       },
                     },
+                  },
+                  className: {
+                    button: 'bg-primary hover:bg-primary/90',
+                    input: 'bg-white/50 dark:bg-gray-900/50',
                   },
                 }}
                 providers={[]}

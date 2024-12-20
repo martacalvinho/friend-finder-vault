@@ -1,15 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AddRecommendationDialog } from "@/components/AddRecommendationDialog";
-import { RecommendationCard } from "@/components/RecommendationCard";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Sparkles, LogOut } from "lucide-react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { DashboardHeader } from "@/components/DashboardHeader";
+import { SearchFilters } from "@/components/SearchFilters";
+import { RecommendationGrid } from "@/components/RecommendationGrid";
+import { motion } from "framer-motion";
 
 interface Recommendation {
   id: string;
@@ -136,26 +134,10 @@ const Index = () => {
   });
 
   const categories = Array.from(new Set(recommendations.map((rec) => rec.category)));
-  const friends = Array.from(new Set(recommendations.map((rec) => rec.friend_name)));
 
   const handleFriendClick = (name: string) => {
     setSelectedFriend(selectedFriend === name ? null : name);
     setSelectedCategory("all");
-  };
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const item = {
-    hidden: { y: 20, opacity: 0 },
-    show: { y: 0, opacity: 1 }
   };
 
   if (isLoading) {
@@ -169,27 +151,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/5">
       <div className="container py-8 px-4 sm:px-6 lg:px-8">
-        <motion.div 
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="flex justify-between items-center mb-8"
-        >
-          <div className="text-center flex-1">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
-              FriendFinds
-              <Sparkles className="h-8 w-8 text-primary animate-pulse" />
-            </h1>
-            <p className="text-gray-600">Never lose a friend's recommendation again</p>
-          </div>
-          <Button
-            variant="ghost"
-            className="hover:bg-red-100 hover:text-red-600 transition-colors"
-            onClick={handleSignOut}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
-        </motion.div>
+        <DashboardHeader onSignOut={handleSignOut} />
 
         {selectedFriend && (
           <motion.div
@@ -212,76 +174,40 @@ const Index = () => {
         )}
 
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
-          <div className="relative flex-1 w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              type="text"
-              placeholder="Search recommendations, categories, or friends..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            categories={categories}
+            selectedFriend={selectedFriend}
+          />
           <AddRecommendationDialog 
             onAdd={handleAddRecommendation} 
             existingCategories={categories}
           />
         </div>
 
-        <motion.div 
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {filteredRecommendations.map((recommendation) => (
-            <motion.div 
-              key={recommendation.id} 
-              variants={item}
-              className="transform transition-all duration-300 hover:translate-y-[-5px]"
-            >
-              <RecommendationCard
-                id={recommendation.id}
-                title={recommendation.title}
-                category={recommendation.category}
-                friendName={recommendation.friend_name}
-                notes={recommendation.notes || undefined}
-                url={recommendation.url || undefined}
-                date={recommendation.date}
-                used={recommendation.used}
-                onFriendClick={handleFriendClick}
-                onDelete={handleDeleteRecommendation}
-                onToggleUsed={handleToggleUsed}
-              />
-            </motion.div>
-          ))}
-          {filteredRecommendations.length === 0 && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="col-span-full text-center py-12"
-            >
-              <p className="text-gray-500">
-                {recommendations.length === 0
-                  ? "No recommendations yet! Tap the '+' button to add your first one!"
-                  : "No recommendations match your search."}
-              </p>
-            </motion.div>
-          )}
-        </motion.div>
+        <RecommendationGrid
+          recommendations={filteredRecommendations}
+          onFriendClick={handleFriendClick}
+          onDelete={handleDeleteRecommendation}
+          onToggleUsed={handleToggleUsed}
+        />
+
+        {filteredRecommendations.length === 0 && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-12 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700"
+          >
+            <p className="text-gray-500">
+              {recommendations.length === 0
+                ? "No recommendations yet! Tap the '+' button to add your first one!"
+                : "No recommendations match your search."}
+            </p>
+          </motion.div>
+        )}
       </div>
     </div>
   );
