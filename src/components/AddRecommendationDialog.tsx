@@ -26,6 +26,7 @@ interface AddRecommendationDialogProps {
     notes: string;
     url?: string;
     date: string;
+    user_id: string;
   }) => void;
   existingCategories: string[];
 }
@@ -73,6 +74,7 @@ export function AddRecommendationDialog({ onAdd, existingCategories }: AddRecomm
       notes,
       url: url || undefined,
       date: today,
+      user_id: session.session.user.id,
     });
 
     setOpen(false);

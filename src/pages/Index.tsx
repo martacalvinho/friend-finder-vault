@@ -20,6 +20,7 @@ interface Recommendation {
   url: string | null;
   date: string;
   used: boolean;
+  user_id: string;
 }
 
 const Index = () => {
