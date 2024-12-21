@@ -19,7 +19,7 @@ interface Recommendation {
 interface RecommendationGridProps {
   recommendations: Recommendation[];
   isLoading: boolean;
-  onRecommendationClick: (id: string) => void;
+  onRecommendationClick: (id: string, used: boolean) => void;
   onDelete: (id: string) => void;
   onFriendClick: (friend_name: string) => void;
 }
@@ -67,7 +67,7 @@ export const RecommendationGrid = ({
             friendName={recommendation.friend_name}
             onFriendClick={onFriendClick}
             onDelete={onDelete}
-            onToggleUsed={(id, used) => onRecommendationClick(id)}
+            onToggleUsed={(id, used) => onRecommendationClick(id, used)}
           />
         </motion.div>
       ))}
