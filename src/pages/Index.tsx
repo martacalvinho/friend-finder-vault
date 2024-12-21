@@ -1,25 +1,14 @@
 import { useState, useMemo, useEffect } from "react";
-import { AddRecommendationDialog } from "@/components/AddRecommendationDialog";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { SearchFilters } from "@/components/SearchFilters";
 import { RecommendationGrid } from "@/components/RecommendationGrid";
-import { Button } from "@/components/ui/button";
-
-interface Recommendation {
-  id: string;
-  title: string;
-  category: string;
-  friend_name: string;
-  notes: string | null;
-  url: string | null;
-  date: string;
-  used: boolean;
-  user_id: string;
-}
+import { AddRecommendationDialog } from "@/components/AddRecommendationDialog";
+import { button as Button } from "@/components/ui/button";
+import { useRecommendations } from "@/hooks/useRecommendations";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -31,6 +20,14 @@ const Index = () => {
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+
+  const {
+    recommendations,
+    isLoading,
+    handleAddRecommendation,
+    handleDeleteRecommendation,
+    handleToggleUsed,
+  } = useRecommendations();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -49,23 +46,6 @@ const Index = () => {
     return () => subscription?.unsubscribe();
   }, [navigate]);
 
-  const { data: recommendations = [], isLoading } = useQuery({
-    queryKey: ['recommendations'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('recommendations')
-        .select('*')
-        .order('date', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching recommendations:', error);
-        throw error;
-      }
-
-      return data || [];
-    },
-  });
-
   const friends = useMemo(() => {
     const uniqueFriends = new Set(recommendations.map(rec => rec.friend_name));
     return Array.from(uniqueFriends).filter(Boolean).sort();
@@ -80,13 +60,10 @@ const Index = () => {
         rec.category.toLowerCase().includes(searchTerm.toLowerCase());
 
       const categoryMatch = selectedCategory === "all" || rec.category === selectedCategory;
-
       const statusMatch = selectedStatus === "all" || 
         (selectedStatus === "used" && rec.used) ||
         (selectedStatus === "unused" && !rec.used);
-
       const friendMatch = !selectedFriend || rec.friend_name === selectedFriend;
-
       const dateMatch = (!startDate || new Date(rec.date) >= startDate) &&
         (!endDate || new Date(rec.date) <= endDate);
 
@@ -101,16 +78,10 @@ const Index = () => {
 
   const handleSignOut = async () => {
     try {
-      // First clear all queries
       queryClient.clear();
-      
-      // Then sign out
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-
-      // Force navigation to login
       window.location.href = '/login';
-      
       toast({
         title: "Signed out successfully",
         description: "Come back soon!",
@@ -123,72 +94,6 @@ const Index = () => {
         variant: "destructive",
       });
     }
-  };
-
-  const handleAddRecommendation = async (newRecommendation: Omit<Recommendation, "id" | "used">) => {
-    const { data, error } = await supabase
-      .from('recommendations')
-      .insert([{ ...newRecommendation, used: false }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error adding recommendation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add recommendation. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['recommendations'] });
-    toast({
-      title: "Success!",
-      description: "Recommendation added successfully",
-    });
-  };
-
-  const handleDeleteRecommendation = async (id: string) => {
-    const { error } = await supabase
-      .from('recommendations')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting recommendation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete recommendation. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['recommendations'] });
-    toast({
-      title: "Success",
-      description: "Recommendation deleted successfully",
-    });
-  };
-
-  const handleToggleUsed = async (id: string, used: boolean) => {
-    const { error } = await supabase
-      .from('recommendations')
-      .update({ used })
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error updating recommendation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update recommendation. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['recommendations'] });
   };
 
   const handleFriendClick = (friendName: string) => {
@@ -234,22 +139,7 @@ const Index = () => {
         <RecommendationGrid
           recommendations={filteredRecommendations}
           isLoading={isLoading}
-          onRecommendationClick={(id) => {
-            const recommendation = recommendations.find(r => r.id === id);
-            if (recommendation) {
-              supabase
-                .from('recommendations')
-                .update({ used: !recommendation.used })
-                .eq('id', id)
-                .then(() => {
-                  queryClient.invalidateQueries(['recommendations']);
-                  toast({
-                    title: recommendation.used ? "Marked as not used" : "Marked as used",
-                    description: `${recommendation.title} has been updated.`,
-                  });
-                });
-            }
-          }}
+          onRecommendationClick={handleToggleUsed}
           onDelete={handleDeleteRecommendation}
           onFriendClick={handleFriendClick}
         />
