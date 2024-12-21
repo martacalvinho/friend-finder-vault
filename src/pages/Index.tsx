@@ -7,7 +7,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { SearchFilters } from "@/components/SearchFilters";
 import { RecommendationGrid } from "@/components/RecommendationGrid";
 import { AddRecommendationDialog } from "@/components/AddRecommendationDialog";
-import { button as Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { useRecommendations } from "@/hooks/useRecommendations";
 
 const Index = () => {
